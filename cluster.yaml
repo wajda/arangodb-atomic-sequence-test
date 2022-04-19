@@ -1,0 +1,55 @@
+apiVersion: "database.arangodb.com/v1"
+kind: "ArangoDeployment"
+metadata:
+  name: "cluster"
+spec:
+  mode: Cluster
+  image: arangodb:3.9.1
+  tls:
+    caSecretName: "None"
+  environment: Development
+  agents:
+    count: 3
+    args:
+      - --log.level=debug
+    probes:
+      livenessProbeSpec:
+        periodSeconds: 5
+        initialDelaySeconds: 30
+        failureThreshold: 5
+    resources:
+      requests:
+        storage: 80Gi
+        cpu: 100m
+        memory: 256Mi
+        storage: 8Gi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  dbservers:
+    count: 5
+    args:
+      - --javascript.allow-admin-execute
+    probes:
+      livenessProbeSpec:
+        periodSeconds: 5
+        initialDelaySeconds: 30
+        failureThreshold: 5
+    resources:
+      requests:
+        storage: 80Gi
+        cpu: 200m
+        memory: 1024Mi
+      limits:
+        cpu: 1000m
+        memory: 2048Mi
+  coordinators:
+    count: 3
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+
