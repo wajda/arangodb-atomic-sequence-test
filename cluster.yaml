@@ -19,7 +19,6 @@ spec:
         failureThreshold: 5
     resources:
       requests:
-        storage: 80Gi
         cpu: 100m
         memory: 256Mi
         storage: 8Gi
