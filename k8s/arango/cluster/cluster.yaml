@@ -14,8 +14,8 @@ spec:
       - --log.level=debug
     probes:
       livenessProbeSpec:
-        periodSeconds: 5
-        initialDelaySeconds: 30
+        periodSeconds: 10
+        initialDelaySeconds: 300
         failureThreshold: 5
     resources:
       requests:
@@ -31,8 +31,8 @@ spec:
       - --javascript.allow-admin-execute
     probes:
       livenessProbeSpec:
-        periodSeconds: 5
-        initialDelaySeconds: 30
+        periodSeconds: 10
+        initialDelaySeconds: 300
         failureThreshold: 5
     resources:
       requests:
@@ -44,6 +44,11 @@ spec:
         memory: 2048Mi
   coordinators:
     count: 3
+    probes:
+      livenessProbeSpec:
+        periodSeconds: 10
+        initialDelaySeconds: 300
+        failureThreshold: 5
     resources:
       requests:
         cpu: 500m
