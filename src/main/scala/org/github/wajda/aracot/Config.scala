@@ -10,4 +10,5 @@ case class Config(
   maxRetries: Int = 5,
   avgDelayMs: Int = 50,
   ignoreRevs: Boolean = false,
+  resetToZero: Boolean = false,
 )

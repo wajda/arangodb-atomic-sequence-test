@@ -36,12 +36,12 @@ spec:
         failureThreshold: 5
     resources:
       requests:
-        storage: 8Gi
-        cpu: 100m
-        memory: 256Mi
+        storage: 80Gi
+        cpu: 200m
+        memory: 1024Mi
       limits:
-        cpu: 500m
-        memory: 512Mi
+        cpu: 1000m
+        memory: 2048Mi
   coordinators:
     count: 3
     probes:
@@ -51,9 +51,9 @@ spec:
         failureThreshold: 5
     resources:
       requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
         cpu: 500m
         memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
 
