@@ -4,11 +4,10 @@ import com.arangodb.async.ArangoDatabaseAsync
 import org.apache.commons.lang.StringUtils.substringBefore
 import org.slf4s.Logging
 import za.co.absa.spline.common.AsyncCallRetryer
-import za.co.absa.spline.persistence.ArangoImplicits.ArangoDatabaseAsyncScalaWrapper
-import za.co.absa.spline.persistence.RetryableExceptionUtils
-import za.co.absa.spline.persistence.model.DataSource
+import za.co.absa.spline.persistence.model.Counter
 
 import java.util.concurrent.atomic.AtomicInteger
+import scala.compat.java8.FutureConverters.CompletionStageOps
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Awaitable, Future}
 import scala.util.{Failure, Success}
@@ -35,8 +34,8 @@ class Controller(
   }
 
   private val nStarted = new AtomicInteger(0)
-  private val nFailed = new AtomicInteger(0)
-  private val nDone = new AtomicInteger(0)
+  private val nFailure = new AtomicInteger(0)
+  private val nSuccess = new AtomicInteger(0)
 
   def action(): Awaitable[_] = {
     log.debug(s"Start concurrent actions")
@@ -50,13 +49,13 @@ class Controller(
         val nAct = nStarted.incrementAndGet()
 
         val t0 = System.nanoTime()
-        val eventualRetVal = tick1()
+        val eventualRetVal = cnt.next()
 
         log.debug(s"action #$nAct\t: started")
 
         eventualRetVal.onComplete({
           case Failure(e) => synchronized {
-            nFailed.incrementAndGet()
+            nFailure.incrementAndGet()
             val t1 = System.nanoTime()
             val dt = t1 - t0
 
@@ -64,7 +63,7 @@ class Controller(
             log.trace("", e)
           }
           case Success(retVal) => synchronized {
-            nDone.incrementAndGet()
+            nSuccess.incrementAndGet()
             val t1 = System.nanoTime()
             val dt = t1 - t0
             log.debug(s"action #$nAct\t: done in ${dt / 1000000} ms\tRetVal: $retVal")
@@ -79,33 +78,25 @@ class Controller(
             case _ => f.flatMap(_ => f2).recoverWith { case _ => f2 }
           }
       }
+      .transformWith(_ => new AsyncCallRetryer(_ => true, Int.MaxValue).execute {
+        Thread.sleep((math.random() * 1000).toInt)
+        val colStats = db.collection("stats")
+        for {
+          exists <- colStats.exists().toScala
+          _ <- if (!exists) colStats.create().toScala else Future.successful(())
+          _ <- if (resetToZero) colStats.truncate().toScala else Future.successful(())
+          r <- colStats.insertDocument(Counter(null, nSuccess.get())).toScala
+        } yield r.getNew
+      })
   }
 
   def logStats(): Unit = synchronized {
     val ns = nStarted.get()
-    val nf = nFailed.get()
-    val nd = nDone.get()
+    val nf = nFailure.get()
+    val nd = nSuccess.get()
 
     log.info(s"Actions started   : $ns")
     log.info(s"Actions finished  : ${nf + nd} ($nf failed, $nd succeeded)")
     log.info(s"Actions pending   : ${ns - nd - nf}")
-  }
-
-  private def tick1(): Future[_] = cnt.next()
-
-  // ################################################################################################
-
-  private val retryer2 = new AsyncCallRetryer(RetryableExceptionUtils.isRetryable, 20)
-
-  private def tick2(): Future[_] = retryer2.execute {
-    val dataSources: Array[DataSource] = (1 to 20).map(i => DataSource(s"ds$i", s"ds$i", null)).toArray
-    db.queryAs[AnyRef](
-      s"""
-         |WITH dataSource
-         |FOR doc IN @dataSources
-         |  INSERT UNSET(doc, ['_key']) INTO dataSource
-         |""".stripMargin,
-      Map("dataSources" -> dataSources)
-    )
   }
 }

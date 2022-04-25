@@ -12,6 +12,8 @@
     <artifactId>aracot</artifactId>
     <packaging>jar</packaging>
 
+    <version>1.0.2</version>
+
     <properties>
         <timestamp>${maven.build.timestamp}</timestamp>
         <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssX</maven.build.timestamp.format>
